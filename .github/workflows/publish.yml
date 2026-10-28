@@ -1,0 +1,31 @@
+# Publishes a tagged version, v<version>, to PyPI. PyPI takes the release by trusted publishing,
+# from this file and the environment `pypi`: no token is kept anywhere.
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: pipx install uv==0.13.6
+      - name: The tag is the package's version
+        run: test "v$(uv version --short)" = "$GITHUB_REF_NAME"
+      - run: uv sync --locked --python 3.13
+      - run: uv run --no-sync pytest
+      - run: uv build
+      - run: uv publish
